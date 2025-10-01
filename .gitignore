@@ -208,3 +208,7 @@ __marimo__/
 
 # Project outputs
 *.png
+outputs/features/embeddings.npy
+outputs/features/embeddings.pt
+outputs/features/embeddings.csv
+!outputs/logs/feature_extraction.log

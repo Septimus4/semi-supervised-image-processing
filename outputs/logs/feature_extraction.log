@@ -1,0 +1,8 @@
+2025-10-01 14:11:26,690 [INFO] Starting feature extraction on device cpu
+2025-10-01 14:11:26,719 [INFO] Discovered 1506 images (labeled=100, unlabeled=1406)
+2025-10-01 14:11:27,979 [INFO] Beginning feature extraction over 1506 records
+2025-10-01 14:12:26,947 [INFO] Computed embeddings with shape (1506, 512)
+2025-10-01 14:12:26,952 [INFO] Completed embedding extraction in 60.23 seconds
+2025-10-01 14:12:26,956 [INFO] Embedding stats — vectors: 1506, dim: 512, mean(|mean|): 0.88500, mean(std): 0.58180
+2025-10-01 14:12:26,974 [INFO] Nearest-neighbor probe completed for 8 samples
+2025-10-01 14:12:27,296 [INFO] Artifacts saved to outputs/features
