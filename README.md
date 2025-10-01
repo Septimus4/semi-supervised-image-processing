@@ -60,3 +60,26 @@ Key artifacts are produced under `outputs/`:
 
 Decode failures (if any) are logged and summarized in the markdown report so
 that problematic files can be investigated separately.
+
+## Semi-supervised training & comparison (Task 4)
+
+Train the supervised baseline and semi-supervised pipeline with:
+
+```bash
+python -m src.semi_supervised_training \
+  --strong-data-dir mri_dataset_brain_cancer_oc/avec_labels \
+  --weak-data-dir mri_dataset_brain_cancer_oc/sans_label \
+  --baseline-epochs 10 \
+  --weak-pretrain-epochs 5 \
+  --finetune-epochs 8
+```
+
+Key outputs (ignored by Git) are written under `outputs/`:
+
+- `tables/results_comparison.csv` — Accuracy, precision, recall, F1, and wall-clock time for each model.
+- `figures/train_curves_*.png`, `confusion_matrix_*.png`, `roc_curves.png` — visual diagnostics.
+- `notes/training_history.json` — metrics per epoch plus data split indices.
+- `models/*.pt` — best-performing checkpoints for local reuse.
+
+A concise narrative summary and interpretation is committed at
+`notes/training_report.md`.
