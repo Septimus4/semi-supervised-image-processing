@@ -601,6 +601,8 @@ class TrainingConfig:
     seed: int = 42
     image_size: int = 224
     num_workers: int = 2
+    # Device selection: "auto" picks CUDA if available, else CPU
+    device: str = "auto"
     baseline_epochs: int = 10
     weak_pretrain_epochs: int = 5
     finetune_epochs: int = 8
@@ -628,7 +630,11 @@ def run_pipeline(config: TrainingConfig) -> Dict[str, Dict[str, float]]:
     """Execute the full training and evaluation workflow."""
 
     set_seed(config.seed)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # Resolve device preference
+    if config.device == "auto":
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    else:
+        device = torch.device(config.device)
     LOGGER.info("Using device: %s", device)
 
     transforms_map = build_transforms(config.image_size)
@@ -861,6 +867,9 @@ def parse_args(args: Optional[Sequence[str]] = None) -> TrainingConfig:
     parser.add_argument("--test-split", type=float, default=0.2)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--image-size", type=int, default=224)
+    parser.add_argument(
+        "--num-workers", type=int, default=2, help="Dataloader worker processes"
+    )
     parser.add_argument("--baseline-epochs", type=int, default=10)
     parser.add_argument("--weak-pretrain-epochs", type=int, default=5)
     parser.add_argument("--finetune-epochs", type=int, default=8)
@@ -868,6 +877,13 @@ def parse_args(args: Optional[Sequence[str]] = None) -> TrainingConfig:
     parser.add_argument("--learning-rate", type=float, default=1e-4)
     parser.add_argument("--weight-decay", type=float, default=1e-4)
     parser.add_argument("--early-stopping", type=int, default=3)
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="auto",
+        choices=["auto", "cpu", "cuda"],
+        help="Device to use: auto (default), cpu, or cuda",
+    )
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -885,6 +901,7 @@ def parse_args(args: Optional[Sequence[str]] = None) -> TrainingConfig:
         test_split=parsed.test_split,
         seed=parsed.seed,
         image_size=parsed.image_size,
+    num_workers=parsed.num_workers,
         baseline_epochs=parsed.baseline_epochs,
         weak_pretrain_epochs=parsed.weak_pretrain_epochs,
         finetune_epochs=parsed.finetune_epochs,
@@ -892,6 +909,7 @@ def parse_args(args: Optional[Sequence[str]] = None) -> TrainingConfig:
         learning_rate=parsed.learning_rate,
         weight_decay=parsed.weight_decay,
         early_stopping_patience=parsed.early_stopping,
+    device=parsed.device,
         output_dir=parsed.output_dir,
         results_table=parsed.output_dir / "tables/results_comparison.csv",
         baseline_curve_path=parsed.output_dir / "figures/train_curves_baseline.png",

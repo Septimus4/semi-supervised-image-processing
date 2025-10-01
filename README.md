@@ -3,6 +3,8 @@
 Utilities for auditing and preprocessing the MRI brain cancer dataset used in
 semi-supervised experiments.
 
+➡️ Full documentation is available in `docs/`. Start here: [docs/index.md](docs/index.md)
+
 ## Environment setup
 
 ```bash
@@ -83,3 +85,17 @@ Key outputs (ignored by Git) are written under `outputs/`:
 
 A concise narrative summary and interpretation is committed at
 `notes/training_report.md`.
+
+## Documentation
+
+- Overview and navigation: [docs/index.md](docs/index.md)
+- Setup: [docs/setup.md](docs/setup.md)
+- Dataset layout: [docs/dataset.md](docs/dataset.md)
+- Data audit: [docs/data_audit.md](docs/data_audit.md)
+- Feature extraction: [docs/feature_extraction.md](docs/feature_extraction.md)
+- Training: [docs/training.md](docs/training.md)
+- CLI reference: [docs/cli_reference.md](docs/cli_reference.md)
+- Performance tips: [docs/performance.md](docs/performance.md)
+- Troubleshooting: [docs/troubleshooting.md](docs/troubleshooting.md)
+- Architecture: [docs/architecture.md](docs/architecture.md)
+- Reproducibility: [docs/reproducibility.md](docs/reproducibility.md)
