@@ -206,9 +206,30 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# Project outputs
+# Project outputs and experiment artifacts
+data*/
+mri_dataset_brain_cancer_oc*/
+outputs/**
+!outputs/README.md
+logs/
+*.npy
+*.npz
+*.pt
+*.h5
+*.pkl
+*.csv
 *.png
-outputs/features/embeddings.npy
-outputs/features/embeddings.pt
-outputs/features/embeddings.csv
-!outputs/logs/feature_extraction.log
+*.pdf
+*.svg
+.ipynb_checkpoints/
+.DS_Store
+*.log
+**/__pycache__/
+*.egg-info/
+.env
+venv*/
+.pytest_cache/
+wandb/
+.dvc/
+.vscode/
+.idea/
