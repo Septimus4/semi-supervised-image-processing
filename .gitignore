@@ -211,10 +211,14 @@ data*/
 mri_dataset_brain_cancer_oc*/
 outputs/**
 !outputs/README.md
+models/**
+checkpoints/**
 logs/
 *.npy
 *.npz
 *.pt
+*.pth
+*.ckpt
 *.h5
 *.pkl
 *.csv
