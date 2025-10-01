@@ -1,0 +1,22 @@
+Description
+
+This dataset includes a total of 1,500 images:
+1,400 unlabeled images
+100 labeled images
+
+The labeled images are divided into two categories:
+Normal: Images of healthy brains.
+Cancer: Images of brains showing signs of tumors.
+
+Image Features
+
+All images have been resized to a standardized size of 512 × 512 pixels. This standardization ensures their compatibility with various image processing and machine learning pipelines. They are saved in the common JPEG (.jpg) image format.
+Potential Applications
+
+This dataset can be used for a wide range of applications, including:
+Training and evaluating various deep learning models (e.g., DenseNet201, YOLOv8x/s, CNN, ResNet50v2, VGG-16, MobileNetV2).
+The development of image classification algorithms for the detection and classification of brain tumors.
+Conducting research in medical image analysis and artificial intelligence applied to the healthcare field.
+
+License
+Free use for academic purposes.
