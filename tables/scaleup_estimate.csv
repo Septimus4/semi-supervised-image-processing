@@ -1,0 +1,7 @@
+component,description,quantity,unit_cost_eur,total_cost_eur
+compute,GPU spot instances for embedding (4× L4 nodes, 27 h each including retries),432 GPU-hours,3.00,1296.0
+compute,GPU spot instances for fine-tuning & evaluation (2× L4 nodes, 60 h each),120 GPU-hours,9.00,1080.0
+compute,CPU orchestration & preprocessing nodes (8 vCPU instances, 400 h),400 vCPU-hours,1.50,600.0
+storage,S3-compatible object storage (raw + embeddings + replication, 12 months),200 GB-months,2.50,500.0
+labeling,Clinician annotations via active learning (3,000 samples @ €0.50 + QA),3000 images,0.50,1500.0
+overhead,Monitoring, CI/CD, and contingency reserve,-,-,24.0

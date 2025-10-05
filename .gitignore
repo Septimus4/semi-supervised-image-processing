@@ -237,3 +237,25 @@ wandb/
 .dvc/
 .vscode/
 .idea/
+
+# Project-specific artifacts
+# Exclude datasets and large generated outputs
+data*/
+mri_dataset_brain_cancer_oc*/
+outputs/**
+reports/**
+models/**
+figures/**
+tables/**
+*.pdf
+*.pptx
+*.csv
+*.png
+*.npy
+*.pt
+*.log
+
+# Allow tracked documentation and lightweight deliverables
+!reports/*.md
+!notes/*.md
+!tables/scaleup_estimate.csv
