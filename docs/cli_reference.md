@@ -34,6 +34,7 @@
 - `--f-beta` (float, default: 2.0) — fallback selection favors recall when constraints can’t be met (beta > 1)
 - `--device` (str: `auto|cpu|cuda`, default: `auto`)
 - `--output-dir` (Path, default: `outputs`)
+- `--unlabeled-cohort-csv` (Path, optional) — CSV with a `path` column to filter the weak pool (e.g., from DBSCAN non-noise cohort)
 
 ## src.threshold_sweep
 - `--strong-data-dir` (Path, required)
@@ -55,8 +56,16 @@
 - `--kmeans-n-init` (int, default: 10)
 - `--dbscan-eps` (float, multiple, default: `[0.5, 0.75, 1.0, 1.25]`)
 - `--dbscan-min-samples` (int, multiple, default: `[5, 10, 15]`)
+- `--dbscan-scope` (str: `all|labeled|unlabeled`, default: `all`) — fit DBSCAN on all points, labeled-only, or unlabeled-only; labels for non-fitted points are set to -1
+- `--dbscan-auto` (flag) — auto-select `eps` via the 98th percentile of the k-distance curve for each `min_samples`; also saves k-distance plots under `outputs/figures/`
 - `--seed` (int, default: 42)
 - `--log-level` (str: `DEBUG|INFO|WARNING|ERROR`, default: `INFO`)
+
+## src.export_unlabeled_cohort
+- `--assignments` (Path, default: `outputs/tables/cluster_assignments.csv`)
+- `--method` (str: `dbscan|kmeans`, default: `dbscan`)
+- `--cluster-id` (int, optional) — select a specific cluster; when omitted with DBSCAN, all non-noise samples are exported
+- `--output` (Path, default: `outputs/tables/unlabeled_cohort.csv`)
 
 ## src.standardize_features
 - `--embeddings-npy` (Path, default: `outputs/features/embeddings.npy`)

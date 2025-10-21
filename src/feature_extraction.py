@@ -227,7 +227,10 @@ def load_model(device: torch.device) -> nn.Module:
     return feature_extractor
 
 
-def preprocess_image(path: Path, transform: transforms.Compose) -> torch.Tensor:
+from typing import Callable
+
+
+def preprocess_image(path: Path, transform: Callable[[Image.Image], torch.Tensor]) -> torch.Tensor:
     """Load and preprocess an image, replicating grayscale to RGB."""
 
     # MRI often comes grayscale; converting to RGB by channel

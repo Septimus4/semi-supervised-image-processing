@@ -10,9 +10,12 @@ Each figure in `outputs/figures/` now has a matching caption file under `outputs
 Highlights from this run:
 - Baseline vs Semi (thresholded): both at accuracy=0.90, precision=0.90, recall=0.90 with threshold policy = constrained — recall-first selection found a feasible high threshold with moderate FPR (0.10).
 - Threshold sweeps (TPR≈1.0): baseline best FPR=0.20 (precision 0.83), semi best FPR=0.60 (precision 0.63), showing the practical cost of forcing TPR to 1.0.
-- Clustering: best K-Means k=3 on PCA cluster space achieved ARI≈0.415, NMI≈0.404; silhouette≈0.10 indicates moderate separation. DBSCAN collapsed to all-noise for tested ε/min_samples; k-distance shows no clear elbow.
+- Clustering: best K-Means k=3 on PCA cluster space achieved ARI≈0.415, NMI≈0.404; silhouette≈0.10 indicates moderate separation. With DBSCAN fit on the labeled-only subset and eps auto-selected from the k-distance 98th percentile, we obtained a modest noise rate (~14%) and a slightly higher silhouette on the fitted subset; see `outputs/figures/kdist_plot_labeled*.png`. An unlabeled-only DBSCAN run (auto-eps) produced compact clusters (silhouette≈0.25) with a near-zero noise rate; diagnostics in `outputs/figures/kdist_plot_unlabeled*.png`.
 
 See also:
 - `outputs/tables/results_comparison.csv` and `results_comparison_detailed.csv`
 - `outputs/tables/metrics_clustering.csv` and `cluster_assignments.csv`
 - `outputs/notes/*` for textual reports and history.
+ - `outputs/notes/operating_point.json` records the selected deployment threshold and policy for the semi-supervised model.
+ - `outputs/tables/unlabeled_predictions_semi.csv` is the triage CSV with per-image probabilities and a flagged column using the deployment threshold.
+ - `outputs/figures/model_comparison.png` (+ `.svg`) provides a consolidated view comparing baseline vs semi, argmax vs thresholded, across Accuracy, Precision, Recall, F1, and FPR.

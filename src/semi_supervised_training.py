@@ -34,6 +34,7 @@ import logging
 import math
 import random
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -970,6 +971,11 @@ class TrainingConfig:
     history_path: Path = Path("outputs/notes/training_history.json")
     baseline_checkpoint: Path = Path("outputs/models/baseline_resnet18.pt")
     semi_checkpoint: Path = Path("outputs/models/semi_resnet18.pt")
+    # Optional: filter unlabeled pool to a cohort CSV (paths column)
+    unlabeled_cohort_csv: Optional[Path] = None
+    # Artifacts for deployment/ops
+    operating_point_path: Path = Path("outputs/notes/operating_point.json")
+    triage_csv_path: Path = Path("outputs/tables/unlabeled_predictions_semi.csv")
 
 
 def run_pipeline(config: TrainingConfig) -> Dict[str, Dict[str, float]]:
@@ -1104,6 +1110,49 @@ def run_pipeline(config: TrainingConfig) -> Dict[str, Dict[str, float]]:
     unlabeled_dataset = UnlabeledImageDataset(
         config.weak_data_dir, transform=transforms_map["eval"]
     )
+    # Optionally filter the unlabeled pool using a cohort CSV (from clustering)
+    if config.unlabeled_cohort_csv is not None:
+        cohort_path = Path(config.unlabeled_cohort_csv)
+        if not cohort_path.exists():
+            raise FileNotFoundError(f"Cohort CSV not found: {cohort_path}")
+        cohort_df = pd.read_csv(cohort_path)
+        if "path" not in cohort_df.columns:
+            raise ValueError("Cohort CSV must contain a 'path' column")
+        # Normalize cohort paths to absolute filesystem paths. CSV may contain
+        # dataset-root-relative paths like 'sans_label/xxx.jpg' or file names.
+        # We accept the following candidates per entry:
+        #  - weak_data_dir / pp
+        #  - weak_data_dir / (pp without the leading weak folder name)
+        allowed: set[str] = set()
+        weak_name = config.weak_data_dir.name
+        for p in cohort_df["path"].astype(str).tolist():
+            pp = Path(p)
+            candidates = set()
+            if pp.is_absolute():
+                candidates.add(pp.resolve())
+            else:
+                candidates.add((config.weak_data_dir / pp).resolve())
+                parts = pp.parts
+                if len(parts) > 1 and parts[0] == weak_name:
+                    candidates.add((config.weak_data_dir / Path(*parts[1:])).resolve())
+                if len(parts) == 1:
+                    # bare filename
+                    candidates.add((config.weak_data_dir / pp.name).resolve())
+            for c in candidates:
+                allowed.add(str(c))
+        before = len(unlabeled_dataset.image_paths)
+        unlabeled_dataset.image_paths = [
+            Path(p) for p in unlabeled_dataset.image_paths if str(Path(p).resolve()) in allowed
+        ]
+        after = len(unlabeled_dataset.image_paths)
+        LOGGER.info(
+            "Filtered unlabeled pool via cohort CSV: %d -> %d images (%d excluded)",
+            before,
+            after,
+            before - after,
+        )
+        if after == 0:
+            raise RuntimeError("Cohort filtering removed all unlabeled images; check the CSV paths match --weak-data-dir.")
     unlabeled_loader = DataLoader(
         unlabeled_dataset,
         batch_size=config.batch_size,
@@ -1338,6 +1387,68 @@ def run_pipeline(config: TrainingConfig) -> Dict[str, Dict[str, float]]:
     config.results_table.parent.mkdir(parents=True, exist_ok=True)
     results_df.to_csv(config.results_table)
 
+    # ------------------- Operating point manifest -------------------
+    try:
+        op_payload = {
+            "model": "semi_supervised_resnet18",
+            "checkpoint": str(config.semi_checkpoint),
+            "positive_class": config.positive_class,
+            "threshold": (None if 'threshold' not in semi_thr_metrics else semi_thr_metrics.get("threshold")),
+            "policy": semi_thr_metrics.get("threshold_policy"),
+            "target_recall": config.target_recall,
+            "min_precision": config.min_precision,
+            "max_fpr": config.max_fpr,
+            "seed": config.seed,
+            "created_at": datetime.now().isoformat(),
+        }
+        config.operating_point_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(config.operating_point_path, "w", encoding="utf-8") as fp:
+            json.dump(op_payload, fp, indent=2)
+    except Exception as exc:
+        LOGGER.warning("Failed to write operating_point.json: %s", exc)
+
+    # ------------------- Triage CSV for unlabeled pool -------------------
+    try:
+        triage_rows: List[Dict[str, Any]] = []
+        triage_thr = semi_thr_metrics.get("threshold")
+        if triage_thr is not None:
+            # Reuse the unlabeled dataset/loader (filtered if cohort CSV was provided)
+            triage_loader = DataLoader(
+                unlabeled_dataset,
+                batch_size=config.batch_size,
+                shuffle=False,
+                num_workers=config.num_workers,
+                pin_memory=torch.cuda.is_available(),
+            )
+            semi_model.eval()
+            with torch.no_grad():
+                for images, paths in triage_loader:
+                    images = images.to(device)
+                    outputs = semi_model(images)
+                    probs_full = torch.softmax(outputs, dim=1)
+                    pos_probs = probs_full[:, pos_index].detach().cpu().numpy().tolist()
+                    for pth, pr in zip(paths, pos_probs):
+                        triage_rows.append(
+                            {
+                                "path": str(pth),
+                                "prob_positive": float(pr),
+                                "flagged": bool(pr >= float(triage_thr)),
+                            }
+                        )
+            df_triage = pd.DataFrame(triage_rows)
+            config.triage_csv_path.parent.mkdir(parents=True, exist_ok=True)
+            df_triage.to_csv(config.triage_csv_path, index=False)
+            LOGGER.info(
+                "Wrote triage CSV with %d rows (%d flagged) to %s",
+                len(df_triage),
+                int(df_triage["flagged"].sum()) if not df_triage.empty else 0,
+                config.triage_csv_path,
+            )
+        else:
+            LOGGER.info("Skipping triage CSV: no threshold selected (thresholding disabled)")
+    except Exception as exc:
+        LOGGER.warning("Failed to write triage CSV: %s", exc)
+
     return {
         "baseline_thresholded": base_thr_metrics,
         "semi_thresholded": semi_thr_metrics,
@@ -1418,6 +1529,12 @@ def parse_args(args: Optional[Sequence[str]] = None) -> TrainingConfig:
         default=Path("outputs"),
         help="Base directory for experiment artefacts.",
     )
+    parser.add_argument(
+        "--unlabeled-cohort-csv",
+        type=Path,
+        default=None,
+        help="Optional CSV listing unlabeled image paths to include in pseudo-labeling (column: path). Useful to restrict to DBSCAN non-noise cohorts.",
+    )
 
     parsed = parser.parse_args(args=args)
 
@@ -1454,6 +1571,7 @@ def parse_args(args: Optional[Sequence[str]] = None) -> TrainingConfig:
         history_path=parsed.output_dir / "notes/training_history.json",
         baseline_checkpoint=parsed.output_dir / "models/baseline_resnet18.pt",
         semi_checkpoint=parsed.output_dir / "models/semi_resnet18.pt",
+        unlabeled_cohort_csv=parsed.unlabeled_cohort_csv,
     )
 
 

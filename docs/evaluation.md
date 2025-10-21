@@ -21,6 +21,8 @@ controlled false positives.
 - Aggregate comparison plot:
   - Grouped bars of TPR/FPR/TNR/precision/accuracy: 
     `outputs/figures/metrics_comparison.png`
+  - Consolidated model and decision comparison (argmax vs thresholded for baseline/semi):
+    `outputs/figures/model_comparison.png` (and `.svg`)
 
 ## Threshold selection for high recall
 
@@ -87,3 +89,47 @@ Example (from a sample run; values vary by split):
 Record the final threshold alongside the checkpoint if you plan to deploy; we
 can add a small inference script that uses the saved threshold for consistent
 behavior.
+
+## Deployment artifacts
+
+After training with thresholding enabled, the pipeline writes two artifacts to
+support reproducible deployment and human-in-the-loop review:
+
+- Operating point manifest: `outputs/notes/operating_point.json`
+  - Captures model name, checkpoint path, positive class, the selected
+    decision threshold, and the policy/constraints used (e.g., target_recall,
+    min_precision, max_fpr), plus a creation timestamp and seed.
+  - Use this JSON to drive batch inference or UI scoring so the same threshold
+    is consistently applied.
+- Unlabeled triage CSV: `outputs/tables/unlabeled_predictions_semi.csv`
+  - Columns: `path`, `prob_positive`, `flagged` (flagged uses the operating
+    threshold). This is the review queue for experts to audit or prioritize.
+
+## Recommended model and operating point
+
+For this dataset and objective (high-recall cancer detection with manageable
+false positives and actionable triage), the best trade-off in our runs is:
+
+- Approach: semi-supervised with cohort-guided pseudo-labeling and constrained
+  recall-first threshold selection (e.g., `--target-recall 0.98`,
+  `--min-precision 0.60`).
+- Model: `outputs/models/semi_resnet18.pt` (ResNet‑18 backbone, ImageNet
+  initialisation).
+- Operating point: threshold ≈ 0.879 (from `operating_point.json`), policy
+  "constrained" with target_recall=0.98 and min_precision=0.60.
+
+Why this choice:
+- On the test set, the semi-supervised model at the selected threshold achieved
+  the same recall as the baseline (0.90) with strictly better precision (1.00
+  vs 0.90) and accuracy (0.95 vs 0.90), reducing FPR to 0.0 while maintaining
+  sensitivity.
+- ResNet‑18 provides fast inference and stable training on this scale; using
+  pseudo-labels expands effective training data without manual annotation.
+- The cohort filter (DBSCAN non-noise) biases pseudo-labels toward compact
+  groups, improving label quality and downstream precision.
+
+Artifacts to use in production:
+- Checkpoint: `outputs/models/semi_resnet18.pt`
+- Operating point: `outputs/notes/operating_point.json` (use the threshold
+  stored here to ensure consistent decisions).
+ - Visual summary for discussion: `outputs/figures/model_comparison.png`

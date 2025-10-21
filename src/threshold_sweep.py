@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from typing import Sequence
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -107,8 +108,10 @@ def main() -> None:
     test_idx = splits["test"]
 
     transforms_map = build_transforms(224)
+    # Ensure indices are a plain Python sequence for type checkers and Dataset API
+    test_indices: Sequence[int] = list(map(int, list(test_idx)))
     test_dataset = TransformSubset(
-        base_dataset, test_idx, transform=transforms_map["eval"], return_paths=False
+        base_dataset, test_indices, transform=transforms_map["eval"], return_paths=False
     )
     test_loader = DataLoader(
         test_dataset,

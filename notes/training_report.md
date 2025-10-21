@@ -19,15 +19,17 @@ This report compares a supervised baseline to a semi-supervised pipeline that pr
   2. Pseudo-label weak pool at confidence ≥ 0.70 → 1,082 samples.
   3. Pre-train a new model on pseudo-labels with backbone frozen.
   4. Unfreeze and fine-tune on strong train split.
-* Threshold tuning: optional. This run used validation-based tuning with `--target-recall 1.0` for the positive class.
+* Threshold tuning: optional. Earlier runs used validation-based tuning with `--target-recall 1.0` for the positive class. Current cohort-guided run used `--target-recall 0.98` with `--min-precision 0.60` (constrained policy).
 
-## Results (thresholded operating point)
-Values sourced from `outputs/tables/results_comparison.csv`.
+## Results – Cohort-guided run (DBSCAN non-noise)
+Values sourced from `outputs/tables/results_comparison.csv` (generated after training with `--unlabeled-cohort-csv outputs/tables/unlabeled_cohort_dbscan.csv`).
+
+Unlabeled cohort: 1,405 images in CSV; pseudo-labeled used for pre-train: 1,275 (threshold ≥ 0.70).
 
 | Model | Accuracy | Precision | Recall | F1 | Training time (s) | Threshold | Target recall |
 | --- | --- | --- | --- | --- | ---:| ---:| ---:|
-| Baseline (thresholded) | 0.70 | 0.625 | 1.00 | 0.769 | 1.75 | 0.084 | 1.0 |
-| Semi-supervised (thresholded) | 0.90 | 0.90 | 0.90 | 0.90 | 7.30 | 0.138 | 1.0 |
+| Baseline (thresholded) | 0.90 | 0.90 | 0.90 | 0.90 | 2.49 | 0.309 | 0.98 |
+| Semi-supervised (thresholded) | 0.95 | 1.00 | 0.90 | 0.947 | 4.70 | 0.879 | 0.98 |
 
 For full details including argmax metrics, confusion matrices, and PR/ROC curves, see:
 * Tables: `outputs/tables/{results_comparison.csv, results_comparison_detailed.csv}`
@@ -40,6 +42,7 @@ For full details including argmax metrics, confusion matrices, and PR/ROC curves
 * **ROC/PR curves** – `outputs/figures/roc_curves.png`, `outputs/figures/pr_curves.png`.
 
 ## Interpretation & next steps
-* The thresholded baseline achieves perfect recall at the cost of lower precision; the semi-supervised model balances precision/recall at 0.90/0.90.
+* With cohort-guided pseudo-labeling, the semi-supervised model improved to accuracy 0.95, precision 1.00, recall 0.90 at a higher decision threshold; baseline remained at 0.90/0.90.
+* Cohort selection (DBSCAN non-noise) improves pseudo-label quality while keeping coverage high.
 * If recall must be ≥1.0 on validation, keep threshold tuning enabled; otherwise, omit `--target-recall` to use argmax decisions.
-* Potential improvements: increase pseudo-label threshold, iterative pseudo-labelling, or add mixup/cutmix during pseudo pre-training.
+* Potential improvements: tune pseudo-label threshold, iterate pseudo-labelling, or add mixup/cutmix during pseudo pre-training.

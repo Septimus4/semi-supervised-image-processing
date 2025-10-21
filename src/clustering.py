@@ -39,7 +39,7 @@ import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -265,7 +265,7 @@ def run_tsne(
             max_iter=1000,
             metric="euclidean",
         )
-        embedding = tsne.fit_transform(base.data)
+        embedding = np.asarray(tsne.fit_transform(base.data))
         results.append(
             EmbeddingResult(
                 name=f"tsne_perp{int(perplexity)}",
@@ -293,7 +293,7 @@ def run_umap(
                 random_state=seed,
                 metric="euclidean",
             )
-            embedding = reducer.fit_transform(base.data)
+            embedding = np.asarray(reducer.fit_transform(base.data))
             results.append(
                 EmbeddingResult(
                     name=f"umap_nn{int(n_neighbors)}_md{min_dist:.2f}",
@@ -379,24 +379,45 @@ def evaluate_dbscan(
     eps_values: Sequence[float],
     min_samples_values: Sequence[int],
     seed: int,
+    scope: str = "all",
 ) -> List[ClusteringResult]:
+    """Evaluate DBSCAN over provided grids and optional scope.
+
+    scope: all | labeled | unlabeled
+    If scope != all, DBSCAN is fitted only on the selected subset and labels
+    for the other subset are set to -1. Silhouette is computed on the subset
+    used for fitting to avoid degeneracy when non-fitted points are marked noise.
+    """
+    if scope not in {"all", "labeled", "unlabeled"}:
+        raise ValueError("scope must be one of: all, labeled, unlabeled")
+
+    if scope == "labeled":
+        mask = bundle.labeled_mask
+    elif scope == "unlabeled":
+        mask = bundle.unlabeled_mask
+    else:
+        mask = np.ones(space.data.shape[0], dtype=bool)
+
+    sub_space = space.data[mask]
     results: List[ClusteringResult] = []
     for eps in eps_values:
         for min_samples in min_samples_values:
             logging.info(
-                "Fitting DBSCAN with eps=%.3f, min_samples=%s", eps, min_samples
+                "Fitting DBSCAN (scope=%s) with eps=%.3f, min_samples=%s", scope, eps, min_samples
             )
             model = DBSCAN(eps=float(eps), min_samples=int(min_samples))
-            labels = model.fit_predict(space.data)
-            ari, nmi = compute_external_metrics(bundle, labels)
-            silhouette = compute_silhouette(space.data, labels)
-            noise_rate = float(np.mean(labels == -1))
+            sub_labels = model.fit_predict(sub_space)
+            labels_full = np.full(space.data.shape[0], -1, dtype=int)
+            labels_full[mask] = sub_labels
+            ari, nmi = compute_external_metrics(bundle, labels_full)
+            silhouette = compute_silhouette(sub_space, sub_labels)
+            noise_rate = float(np.mean(sub_labels == -1))
             results.append(
                 ClusteringResult(
                     method="dbscan",
-                    space=space.name,
-                    labels=labels,
-                    params={"eps": float(eps), "min_samples": int(min_samples)},
+                    space=f"{space.name}:{scope}",
+                    labels=labels_full,
+                    params={"eps": float(eps), "min_samples": int(min_samples), "scope": scope},
                     ari=ari,
                     nmi=nmi,
                     silhouette=silhouette,
@@ -405,6 +426,16 @@ def evaluate_dbscan(
                 )
             )
     return results
+
+def auto_eps_from_kdistance(space: np.ndarray, min_samples: int, quantile: float = 0.98) -> float:
+    """Select eps from the quantile of the k-distance curve (simple elbow heuristic)."""
+    nn = NearestNeighbors(n_neighbors=int(min_samples))
+    nn.fit(space)
+    distances, _ = nn.kneighbors(space)
+    kth_dist = np.sort(distances[:, -1])
+    idx = int(np.clip(round(quantile * (len(kth_dist) - 1)), 0, len(kth_dist) - 1))
+    eps = float(kth_dist[idx])
+    return eps
 
 
 def choose_best(results: Sequence[ClusteringResult]) -> Optional[ClusteringResult]:
@@ -434,7 +465,7 @@ def ensure_directory(path: Path) -> None:
 def save_embedding_npz(root: Path, result: EmbeddingResult) -> None:
     ensure_directory(root)
     target = root / f"{result.name}.npz"
-    np.savez_compressed(target, embedding=result.data, params=result.params)
+    np.savez_compressed(target, embedding=result.data, params_json=json.dumps(result.params, sort_keys=True))
 
 
 def plot_embedding(
@@ -712,6 +743,18 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         help="Candidate min_samples values for DBSCAN.",
     )
     parser.add_argument(
+        "--dbscan-scope",
+        type=str,
+        default="all",
+        choices=["all", "labeled", "unlabeled"],
+        help="Run DBSCAN on: all points, labeled subset only, or unlabeled subset only.",
+    )
+    parser.add_argument(
+        "--dbscan-auto",
+        action="store_true",
+        help="Enable simple auto-selection of eps via k-distance quantile (98th percentile). Overrides --dbscan-eps.",
+    )
+    parser.add_argument(
         "--seed",
         type=int,
         default=42,
@@ -763,12 +806,41 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         args.kmeans_n_init,
         args.seed,
     )
+    # DBSCAN with optional scope and auto-eps
+    dbscan_eps_grid = args.dbscan_eps
+    if args.dbscan_auto:
+        # choose eps per min_samples using the selected scope mask
+        if args.dbscan_scope == "labeled":
+            mask = bundle.labeled_mask
+        elif args.dbscan_scope == "unlabeled":
+            mask = bundle.unlabeled_mask
+        else:
+            mask = np.ones(pca_results.cluster_space.data.shape[0], dtype=bool)
+        sub_space = pca_results.cluster_space.data[mask]
+
+        figures_dir = args.output_root / "figures"
+        # Save k-distance plots for each min_samples
+        for ms in args.dbscan_min_samples:
+            plot_k_distance(
+                EmbeddingResult(name=f"pca_cluster:{args.dbscan_scope}", data=sub_space, params={}),
+                int(ms),
+                figures_dir / f"kdist_plot_{args.dbscan_scope}_ms{int(ms)}.png",
+            )
+        # Build eps grid around the auto pick for each min_samples
+        dbscan_eps_grid = []
+        for ms in args.dbscan_min_samples:
+            base_eps = auto_eps_from_kdistance(sub_space, int(ms), quantile=0.98)
+            dbscan_eps_grid.extend([max(1e-6, base_eps * f) for f in (0.8, 1.0, 1.2)])
+        # Deduplicate and sort
+        dbscan_eps_grid = sorted(set(float(e) for e in dbscan_eps_grid))
+
     dbscan_results = evaluate_dbscan(
         pca_results.cluster_space,
         bundle,
-        args.dbscan_eps,
+        dbscan_eps_grid,
         args.dbscan_min_samples,
         args.seed,
+        scope=args.dbscan_scope,
     )
     all_results = kmeans_results + dbscan_results
 
@@ -824,11 +896,24 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
             dbscan_noise_rate=noise_rate,
         )
     if best_dbscan is not None:
-        dbscan_min_samples = int(best_dbscan.params.get("min_samples", 5))
+        dbscan_min_samples = int(cast(int, best_dbscan.params.get("min_samples", 5)))
+        # plot k-distance for the scope used in best dbscan
+        scope = str(best_dbscan.params.get("scope", args.dbscan_scope))
+        if scope == "labeled":
+            mask = bundle.labeled_mask
+        elif scope == "unlabeled":
+            mask = bundle.unlabeled_mask
+        else:
+            mask = np.ones(pca_results.cluster_space.data.shape[0], dtype=bool)
+        sub_space = EmbeddingResult(
+            name=f"pca_cluster:{scope}",
+            data=pca_results.cluster_space.data[mask],
+            params={},
+        )
         plot_k_distance(
-            pca_results.cluster_space,
+            sub_space,
             dbscan_min_samples,
-            figures_dir / "kdist_plot.png",
+            figures_dir / f"kdist_plot_{scope}.png",
         )
 
     report_path = args.output_root / "notes" / "clustering_report.md"

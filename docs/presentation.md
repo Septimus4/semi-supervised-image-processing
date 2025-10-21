@@ -97,10 +97,10 @@ Goal: Detect brain tumors with high recall while controlling reviewer workload u
 
 - Methods tried: K-Means (k sweep), DBSCAN (epsilon/min_samples sweep).
 - Evaluation: Adjusted Rand Index (ARI), Normalized Mutual Information (NMI) when labels available.
-- Insights: K-Means k≈3 best in this run; DBSCAN tended to mark many points as noise for tested params.
+- Insights: K-Means k≈3 was best by ARI/NMI in this run. With the updated approach (DBSCAN fit on the labeled-only subset plus auto-selected eps from the 98th percentile k-distance), DBSCAN formed denser labeled clusters with a modest noise rate (~14%) and produced a slightly higher silhouette on its fitted subset; unlabeled points remain marked as noise (−1) by design. We also evaluated DBSCAN on the unlabeled-only subset (auto-eps): it produced compact clusters (silhouette≈0.25) with a near-zero noise rate, useful for discovering cohorts and prioritizing triage, while leaving ARI/NMI undefined by design.
 - Deliverables: `outputs/tables/*clustering*.csv`, `outputs/figures/*pca|tsne|umap*.png`.
   - Why: Understand latent structure, discover cohorts, and surface potential mislabeled/outlier samples.
-  - How/Impact: K-Means provides stable partitions for reporting; DBSCAN highlights noise and dense clusters.
+  - How/Impact: K-Means provides stable partitions for reporting; DBSCAN (labeled scope) highlights dense labeled cohorts and flags ambiguous regions as noise. See k-distance diagnostics under `outputs/figures/kdist_plot_labeled*.png`.
 
 ---
 
@@ -234,6 +234,44 @@ Goal: Detect brain tumors with high recall while controlling reviewer workload u
     --strong-data-dir mri_dataset_brain_cancer_oc/avec_labels \
     --model semi \
     --device cuda
+  ```
+
+- Standardize embeddings for clustering:
+  ```bash
+  python -m src.standardize_features \
+    --embeddings-npy outputs/features/embeddings.npy \
+    --embeddings-csv outputs/features/embeddings.csv \
+    --output-npz outputs/features/standardized_features.npz
+  ```
+
+- Clustering with PCA/t-SNE/UMAP + K-Means/DBSCAN (labeled-only DBSCAN with auto-eps):
+  ```bash
+  python -m src.clustering \
+    --features-npz outputs/features/standardized_features.npz \
+    --output-root outputs \
+    --variance-target 0.90 \
+    --tsne-dim 50 \
+    --dbscan-scope labeled \
+    --dbscan-auto \
+    --log-level INFO
+  ```
+
+- Export an unlabeled cohort from clustering (DBSCAN non-noise by default):
+  ```bash
+  python -m src.export_unlabeled_cohort \
+    --assignments outputs/tables/cluster_assignments.csv \
+    --method dbscan \
+    --output outputs/tables/unlabeled_cohort_dbscan.csv
+  ```
+
+- Train with cohort-guided pseudo-labeling (restrict weak pool to cohort CSV):
+  ```bash
+  python -m src.semi_supervised_training \
+    --strong-data-dir mri_dataset_brain_cancer_oc/avec_labels \
+    --weak-data-dir mri_dataset_brain_cancer_oc/sans_label \
+    --unlabeled-cohort-csv outputs/tables/unlabeled_cohort_dbscan.csv \
+    --target-recall 0.98 \
+    --min-precision 0.60
   ```
 
 ---
