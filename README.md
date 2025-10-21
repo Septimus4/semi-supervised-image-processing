@@ -12,7 +12,7 @@ pip install -e .
 ```
 
 This installs PyTorch, torchvision, and the supporting scientific Python stack
-needed by the audit and feature extraction scripts.
+needed by the audit, feature extraction, and training scripts.
 
 ## Dataset layout
 
@@ -38,7 +38,7 @@ Artifacts are written to `outputs/tables`, `outputs/figures`, and
 ## Feature extraction (Task 2)
 
 The `src.feature_extraction` module builds a deterministic preprocessing
-pipeline (resize→center crop→tensor→ImageNet normalization) and extracts
+pipeline (resize→tensor→ImageNet normalization; no RGB conversion) and extracts
 512-D embeddings using a frozen `torchvision` ResNet-18 backbone. Run the full
 inference pass with:
 
@@ -63,9 +63,9 @@ Key artifacts are produced under `outputs/`:
 Decode failures (if any) are logged and summarized in the markdown report so
 that problematic files can be investigated separately.
 
-## Semi-supervised training & comparison (Task 4)
+## Training (baseline and semi-supervised)
 
-Train the supervised baseline and semi-supervised pipeline with:
+Train the semi-supervised pipeline (includes a supervised baseline for comparison):
 
 ```bash
 python -m src.semi_supervised_training \
@@ -86,6 +86,15 @@ Key outputs (ignored by Git) are written under `outputs/`:
 A concise narrative summary and interpretation is committed at
 `notes/training_report.md`.
 
+Run a supervised-only baseline:
+```bash
+python -m src.supervised_training \
+  --strong-data-dir mri_dataset_brain_cancer_oc/avec_labels \
+  --baseline-epochs 10 \
+  --batch-size 32 \
+  --device cuda
+```
+
 ## Calibrate the decision threshold
 
 The training script automatically selects a probability cutoff on the validation split to meet your deployment goals:
@@ -94,7 +103,7 @@ The training script automatically selects a probability cutoff on the validation
 - Among thresholds that satisfy the constraints, it picks the largest one (to reduce false positives).
 - If constraints can’t be met, it falls back to maximizing F-beta (`--f-beta`, default 2.0, recall-weighted).
 
-Recommended run (example):
+Recommended run (example, semi-supervised):
 
 ```bash
 python -m src.semi_supervised_training \
@@ -118,7 +127,7 @@ python -m src.threshold_sweep \
   --device cuda
 ```
 
-This writes `outputs/tables/threshold_sweep_semi.csv` and prints the highest threshold achieving TPR≈1.0 on the test split. Calibrate on validation for deployment; use the test sweep for understanding, not tuning.
+This writes `outputs/tables/threshold_sweep_{baseline|semi}.csv` and prints the highest threshold achieving TPR≈1.0 on the test split. Calibrate on validation for deployment; use the test sweep for understanding, not tuning.
 
 ## Documentation
 

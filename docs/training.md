@@ -1,6 +1,6 @@
 # Training
 
-The training script compares a supervised baseline with a semi-supervised variant using pseudo-labeling.
+The training compares a supervised baseline with a semi-supervised variant using pseudo-labeling. You can run either the semi-supervised pipeline (baseline + pseudo-labeling + fine-tune) or a supervised-only baseline.
 
 ## Quick start (GPU)
 ```bash
@@ -10,6 +10,17 @@ python -m src.semi_supervised_training \
   --baseline-epochs 10 \
   --weak-pretrain-epochs 5 \
   --finetune-epochs 8 \
+  --batch-size 128 \
+  --image-size 224 \
+  --num-workers 16 \
+  --device cuda
+```
+
+### Supervised-only baseline
+```bash
+python -m src.supervised_training \
+  --strong-data-dir mri_dataset_brain_cancer_oc/avec_labels \
+  --baseline-epochs 10 \
   --batch-size 128 \
   --image-size 224 \
   --num-workers 16 \
@@ -40,11 +51,20 @@ To bias toward detecting all cancer cases (high recall), the script can choose a
 decision threshold on the validation set to meet a desired recall target for the
 positive class, then apply that threshold on the test set.
 
-Use:
+Use with the semi-supervised pipeline:
 ```bash
 python -m src.semi_supervised_training \
   --strong-data-dir mri_dataset_brain_cancer_oc/avec_labels \
   --weak-data-dir mri_dataset_brain_cancer_oc/sans_label \
+  --target-recall 1.0 \
+  --positive-class cancer \
+  --device cuda
+```
+
+The same threshold selection flags are available for the supervised-only CLI:
+```bash
+python -m src.supervised_training \
+  --strong-data-dir mri_dataset_brain_cancer_oc/avec_labels \
   --target-recall 1.0 \
   --positive-class cancer \
   --device cuda

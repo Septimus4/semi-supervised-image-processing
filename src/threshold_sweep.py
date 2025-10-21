@@ -11,7 +11,7 @@ import torch
 from torch.utils.data import DataLoader
 from torchvision import datasets
 
-from .semi_supervised_training import (
+from src.training.common import (
     build_transforms,
     TransformSubset,
     create_model,

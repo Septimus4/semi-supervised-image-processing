@@ -1,7 +1,7 @@
 # Task 4 – Semi-Supervised vs. Supervised Training Report (updated)
 
 ## Overview
-This report compares a supervised baseline to a semi-supervised pipeline that pre-trains on pseudo-labelled images from the weak pool before fine-tuning on the strongly labelled cohort. Implemented in `src/semi_supervised_training.py` and executed via `python -m src.semi_supervised_training`.
+This report compares a supervised baseline to a semi-supervised pipeline that pre-trains on pseudo-labelled images from the weak pool before fine-tuning on the strongly labelled cohort. Executed via `python -m src.semi_supervised_training`; implementation uses shared utilities in `src/training/common.py` and the pipeline in `src/training/semi_supervised.py`.
 
 ## Data preparation
 * **Strong labels** – `mri_dataset_brain_cancer_oc/avec_labels` (classes: `cancer`, `normal`).

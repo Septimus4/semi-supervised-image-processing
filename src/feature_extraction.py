@@ -231,14 +231,12 @@ from typing import Callable
 
 
 def preprocess_image(path: Path, transform: Callable[[Image.Image], torch.Tensor]) -> torch.Tensor:
-    """Load and preprocess an image, replicating grayscale to RGB."""
-
-    # MRI often comes grayscale; converting to RGB by channel
-    # replication satisfies the backbone’s 3-channel input requirement.
+    """Load and preprocess an image.
+    inputs are already RGB no conversion.
+    """
 
     with Image.open(path) as img:
-        image_rgb = img.convert("RGB")
-        tensor = transform(image_rgb)
+        tensor = transform(img)
     return tensor
 
 
@@ -441,7 +439,7 @@ def save_artifacts(
         "input_crop": TARGET_CROP,
         "normalization_mean": IMAGENET_MEAN,
         "normalization_std": IMAGENET_STD,
-        "channel_policy": "PIL RGB conversion (grayscale replicated)",
+        "channel_policy": "No conversion (assumes RGB inputs)",
         "date_utc": datetime.now(timezone.utc).isoformat(),
         "num_images": int(results.embeddings.shape[0]),
         "failed_images": len(results.failures),
@@ -479,7 +477,7 @@ def save_artifacts(
 
 - Backbone: {BACKBONE_NAME} ({BACKBONE_WEIGHTS})
 - Layer: global average pooled features ({results.embeddings.shape[1]}-D)
-- Input spec: resize {TARGET_RESIZE} → center crop {TARGET_CROP}, RGB conversion, ImageNet normalization
+- Input spec: resize {TARGET_RESIZE} → center crop {TARGET_CROP}, ImageNet normalization
 - Batch size: {BATCH_SIZE}
 - Device: {device}
 - Total images processed: {results.embeddings.shape[0]}

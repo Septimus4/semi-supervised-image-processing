@@ -36,6 +36,26 @@
 - `--output-dir` (Path, default: `outputs`)
 - `--unlabeled-cohort-csv` (Path, optional) — CSV with a `path` column to filter the weak pool (e.g., from DBSCAN non-noise cohort)
 
+## src.supervised_training
+- `--strong-data-dir` (Path, required)
+- `--batch-size` (int, default: 16)
+- `--val-split` (float, default: 0.2)
+- `--test-split` (float, default: 0.2)
+- `--seed` (int, default: 42)
+- `--image-size` (int, default: 224)
+- `--num-workers` (int, default: 2)
+- `--baseline-epochs` (int, default: 10)
+- `--learning-rate` (float, default: 1e-4)
+- `--weight-decay` (float, default: 1e-4)
+- `--early-stopping` (int, default: 3)
+- `--positive-class` (str, default: `cancer`) — name of the folder for the positive class
+- `--target-recall` (float, optional) — target recall for threshold selection on validation set; if omitted, threshold tuning is disabled and argmax predictions are used
+- `--min-precision` (float, optional) — minimum precision constraint for threshold selection
+- `--max-fpr` (float, optional) — maximum false positive rate constraint for threshold selection
+- `--f-beta` (float, default: 2.0) — fallback selection favors recall when constraints can’t be met (beta > 1)
+- `--device` (str: `auto|cpu|cuda`, default: `auto`)
+- `--output-dir` (Path, default: `outputs`)
+
 ## src.threshold_sweep
 - `--strong-data-dir` (Path, required)
 - `--output-dir` (Path, default: `outputs`)

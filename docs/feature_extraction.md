@@ -18,5 +18,5 @@ Key outputs:
 - `outputs/notes/feature_summary.md` — quick report with stats and NN spot-check
 
 Notes:
-- Grayscale inputs are converted to RGB using PIL and normalized with ImageNet stats.
 - The module logs decode failures and continues; see `outputs/logs/feature_extraction.log`.
+- Input channels: no RGB conversion is performed here. The preprocessing expects images to already be 3‑channel RGB to match ImageNet normalization. If you introduce true single‑channel grayscale images later, either replicate the channel at load time or add a conditional conversion step upstream.
