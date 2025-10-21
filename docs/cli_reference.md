@@ -57,3 +57,9 @@
 - `--dbscan-min-samples` (int, multiple, default: `[5, 10, 15]`)
 - `--seed` (int, default: 42)
 - `--log-level` (str: `DEBUG|INFO|WARNING|ERROR`, default: `INFO`)
+
+## src.standardize_features
+- `--embeddings-npy` (Path, default: `outputs/features/embeddings.npy`)
+- `--embeddings-csv` (Path, default: `outputs/features/embeddings.csv`)
+- `--output-npz` (Path, default: `outputs/features/standardized_features.npz`)
+- `--log-level` (str: `DEBUG|INFO|WARNING|ERROR`, default: `INFO`)
