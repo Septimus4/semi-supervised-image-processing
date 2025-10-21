@@ -34,3 +34,22 @@ python -m src.semi_supervised_training \
 - Increase `--num-workers` based on CPU cores to keep the GPU fed (e.g., 12–20 on a 32-thread CPU).
 - Raise `--batch-size` if VRAM allows to improve throughput.
 - If validation oscillates, adjust `--learning-rate`, or increase patience via `--early-stopping`.
+
+## Favor near-100% detection (accept some false positives)
+To bias toward detecting all cancer cases (high recall), the script can choose a
+decision threshold on the validation set to meet a desired recall target for the
+positive class, then apply that threshold on the test set.
+
+Use:
+```bash
+python -m src.semi_supervised_training \
+  --strong-data-dir mri_dataset_brain_cancer_oc/avec_labels \
+  --weak-data-dir mri_dataset_brain_cancer_oc/sans_label \
+  --target-recall 1.0 \
+  --positive-class cancer \
+  --device cuda
+```
+
+Notes:
+- The `--positive-class` must match the folder name in `avec_labels/` for the positive class.
+- `--target-recall 1.0` aims to catch all positives on validation; if unattainable, the lowest threshold is chosen, maximizing recall.

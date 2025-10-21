@@ -19,6 +19,17 @@ Run the module directly as a script to execute the pipeline::
 
 The default CLI arguments mirror the acceptance criteria listed in Task 3 but
 can be customized for ad-hoc experimentation. See ``--help`` for details.
+
+Notes (how to read these clusters):
+- We reduce dimensionality first (PCA) to denoise and speed up clustering.
+    The number of components is chosen to hit a target explained variance, a
+    common and principled heuristic students can reason about.
+- We use both internal (silhouette) and external (ARI/NMI on labeled subset)
+    metrics to select among configurations. External metrics are only computed
+    where ground-truth labels exist to avoid leakage.
+- Visualisations plot both clusters and known labels on top of 2D embeddings
+    (PCA, t-SNE, UMAP) to build intuition—clusters that align with labels are a
+    good sign that the features capture class structure.
 """
 
 from __future__ import annotations
@@ -251,7 +262,7 @@ def run_tsne(
             init="pca",
             random_state=seed,
             learning_rate="auto",
-            n_iter=1000,
+            max_iter=1000,
             metric="euclidean",
         )
         embedding = tsne.fit_transform(base.data)

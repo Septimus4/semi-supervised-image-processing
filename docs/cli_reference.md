@@ -27,5 +27,33 @@
 - `--learning-rate` (float, default: 1e-4)
 - `--weight-decay` (float, default: 1e-4)
 - `--early-stopping` (int, default: 3)
+- `--positive-class` (str, default: `cancer`) — name of the folder for the positive class
+- `--target-recall` (float, optional) — target recall for threshold selection on validation set; if omitted, threshold tuning is disabled and argmax predictions are used
+- `--min-precision` (float, optional) — minimum precision constraint for threshold selection
+- `--max-fpr` (float, optional) — maximum false positive rate constraint for threshold selection
+- `--f-beta` (float, default: 2.0) — fallback selection favors recall when constraints can’t be met (beta > 1)
 - `--device` (str: `auto|cpu|cuda`, default: `auto`)
 - `--output-dir` (Path, default: `outputs`)
+
+## src.threshold_sweep
+- `--strong-data-dir` (Path, required)
+- `--output-dir` (Path, default: `outputs`)
+- `--model` (str: `baseline|semi`, default: `semi`)
+- `--positive-class` (str, default: `cancer`)
+- `--device` (str, default: `cuda` — falls back to `cpu` if CUDA is unavailable)
+- `--num-workers` (int, default: 4)
+
+## src.clustering
+- `--features-npz` (Path, required) — path to standardized feature bundle (`standardized_features.npz`)
+- `--output-root` (Path, default: `outputs`)
+- `--variance-target` (float, default: 0.9) — PCA explained-variance target for clustering space
+- `--tsne-dim` (int, default: 50) — PCA components fed into t-SNE/UMAP
+- `--tsne-perplexities` (float, multiple, default: `[10.0, 30.0, 50.0]`)
+- `--umap-neighbors` (int, multiple, default: `[15, 30, 50]`)
+- `--umap-min-dist` (float, multiple, default: `[0.0, 0.1]`)
+- `--kmeans-range` (int, multiple, default: `2–10`)
+- `--kmeans-n-init` (int, default: 10)
+- `--dbscan-eps` (float, multiple, default: `[0.5, 0.75, 1.0, 1.25]`)
+- `--dbscan-min-samples` (int, multiple, default: `[5, 10, 15]`)
+- `--seed` (int, default: 42)
+- `--log-level` (str: `DEBUG|INFO|WARNING|ERROR`, default: `INFO`)

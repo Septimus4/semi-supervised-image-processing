@@ -9,6 +9,12 @@ metadata, and produces the artifacts required for the exploratory audit:
 - Sample image grid summarizing the sampled subset visually.
 - Markdown notes capturing high-level observations.
 
+Why audit first?
+- Auditing helps detect issues (corrupt files, inconsistent modes, wildly
+    varying sizes) early, before they turn into training instability.
+- The goal isn’t perfection but to build a *mental model* of the data so we
+    can make sound preprocessing and evaluation choices later.
+
 Run directly as a script to regenerate all assets:
 
 ```
@@ -44,6 +50,9 @@ DIRECTORY_SUMMARY_CSV = OUTPUT_TABLE_DIR / "directory_summary.csv"
 class FileRecord:
     """Container for sampled file metadata."""
 
+    # We capture enough attributes to draw distributions and
+    # write helpful summaries. This keeps the audit lightweight but useful.
+
     bucket: str
     relative_path: str
     absolute_path: Path
@@ -69,6 +78,9 @@ BUCKET_LABELS = {
 
 def discover_files(data_dir: Path) -> Dict[str, List[Path]]:
     """Return a mapping from bucket name to discovered files."""
+
+    # We explicitly require the expected directory layout. A
+    # clear failure here beats subtle bugs later in the pipeline.
     inventory: Dict[str, List[Path]] = defaultdict(list)
     for bucket_dir in BUCKET_LABELS:
         bucket_path = data_dir / bucket_dir
@@ -82,6 +94,10 @@ def discover_files(data_dir: Path) -> Dict[str, List[Path]]:
 
 def summarize_directory_tree(file_inventory: Dict[str, List[Path]], base_dir: Path) -> pd.DataFrame:
     """Generate a directory summary DataFrame."""
+
+    # This is intentionally coarse: we want to spot whether
+    # labeled classes are evenly populated and whether unlabeled files are
+    # too few/too many for planned semi-supervised steps.
     records = []
     for bucket, files in file_inventory.items():
         counter: Counter[str] = Counter()
@@ -109,6 +125,9 @@ def summarize_directory_tree(file_inventory: Dict[str, List[Path]], base_dir: Pa
 
 def sample_files(file_inventory: Dict[str, List[Path]], sample_size: int, seed: int = 42) -> List[Path]:
     """Sample files across buckets with a deterministic seed."""
+
+    # Sampling keeps the audit fast and repeatable, suitable
+    # for classroom exercises. For a full audit, increase the sample size.
     all_files: List[Path] = []
     for files in file_inventory.values():
         all_files.extend(files)
@@ -121,6 +140,9 @@ def sample_files(file_inventory: Dict[str, List[Path]], sample_size: int, seed: 
 
 def extract_metadata(sampled_paths: Iterable[Path], base_dir: Path) -> List[FileRecord]:
     """Extract metadata for the sampled files."""
+
+    # Failures are recorded as readable=False rather than
+    # crashing, so students can see and reason about data quality.
     records: List[FileRecord] = []
     for path in sampled_paths:
         relative = path.relative_to(base_dir)
@@ -239,6 +261,9 @@ def save_histograms(df: pd.DataFrame, base_dir: Path) -> None:
     grayscale_modes = {"1", "L", "LA", "I", "F"}
     grayscale_records = [r for _, r in df.iterrows() if r["mode"] in grayscale_modes]
     if grayscale_records:
+    # Intensity histograms are *illustrative*. They show
+        # whether images come from different scanners or preprocessing steps.
+        # For full rigor, consider per-scan normalization.
         fig, ax = plt.subplots()
         for record in grayscale_records:
             with Image.open(base_dir / record["path"]) as img:

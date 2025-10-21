@@ -1,0 +1,72 @@
+# Glossary
+
+Short definitions of terms used throughout this project, plus why each matters here.
+
+- Accuracy — Share of correct predictions out of all predictions. In imbalanced datasets, it can be misleading.
+	- Why here: Reported for completeness in metrics tables, but we prioritize recall/precision and F1 due to class imbalance.
+- AUC (Area Under the ROC Curve) — Threshold-independent measure of ranking quality; higher is better.
+	- Why here: Used to judge the model’s ability to rank positives above negatives regardless of threshold; plotted in ROC.
+- AP (Average Precision) — Area under the precision–recall curve; summarizes precision across recalls.
+	- Why here: Preferred in imbalanced settings; we track AP alongside PR curves to assess rare positive detection quality.
+- Argmax — Choosing the class with the highest predicted probability.
+	- Why here: Baseline decision rule compared against threshold-based operating points tuned for recall/precision trade-offs.
+- Balanced sampler — A data loader strategy that over-samples minority classes to reduce class imbalance during training.
+	- Why here: Used in supervised/semi-supervised training to mitigate label imbalance and stabilize learning.
+- Batch size — Number of samples processed before updating model weights.
+	- Why here: Tuned for GPU/CPU memory and throughput; impacts gradient noise and convergence speed.
+- Cross-entropy (loss) — Common classification loss that compares predicted probabilities with true labels.
+	- Why here: Primary training loss for the classifier head and fine-tuning stages.
+- DBSCAN — Density-Based Spatial Clustering of Applications with Noise; clustering that can mark outliers as noise.
+	- Why here: Explores structure and potential outliers in unlabeled embeddings; complements K-Means by handling noise.
+- Embedding — Fixed-length vector representation of an image capturing salient features.
+	- Why here: We extract 512-D ResNet features to drive clustering, visualization (PCA/t-SNE/UMAP), and audits.
+- Epoch — One full pass over the training dataset.
+	- Why here: Training curves are plotted per epoch; early stopping and LR scheduling react to per-epoch validation.
+- F1 score — Harmonic mean of precision and recall; balances the two.
+	- Why here: Key scalar metric for thresholded predictions; used to summarize balanced performance.
+- Fβ score — Generalization of F1 that weights recall more when β>1.
+	- Why here: Used as a fallback in operating point selection to emphasize recall when constraints aren’t met.
+- False Negative (FN) — A positive sample predicted as negative; in screening, often the most costly error.
+	- Why here: Our recall-first threshold policy explicitly aims to minimize FNs.
+- False Positive (FP) — A negative sample predicted as positive; drives reviewer workload.
+	- Why here: We constrain FP burden via min-precision or max-FPR in threshold selection.
+- Fine-tuning — Unfreezing and adjusting parts or all of a pretrained model on a new task/dataset.
+	- Why here: After head training, we unfreeze layers to adapt ImageNet features to MRI specifics.
+- FP Rate (FPR) — FP/(FP+TN); fraction of healthy predicted as sick.
+	- Why here: Appears in ROC and as an optional constraint in operating point selection to control workload.
+- ImageNet normalization — Standard mean/std normalization used with ImageNet-pretrained models.
+	- Why here: Ensures inputs match the statistics expected by the pretrained ResNet-18 backbone.
+- K-Means — Clustering algorithm that partitions data into k clusters via centroid updates.
+	- Why here: Baseline clustering for embeddings; we sweep k and report ARI/NMI and visualizations.
+- Learning rate (LR) — Step size used by the optimizer when updating model weights.
+	- Why here: Critical hyperparameter; adjusted by schedulers and early stopping for stable convergence.
+- LR scheduler — A policy that adjusts the learning rate during training (e.g., ReduceLROnPlateau).
+	- Why here: We use ReduceLROnPlateau to lower LR when validation stalls, improving final performance.
+- Mixed precision (AMP) — Training/inference using lower precision to speed up and reduce memory use.
+	- Why here: Optional acceleration on compatible GPUs to increase throughput during feature extraction/training.
+- PCA — Principal Component Analysis; linear dimensionality reduction preserving variance.
+	- Why here: Provides quick, interpretable 2D projections of embeddings as a baseline visualization.
+- Precision — TP/(TP+FP); of predicted positives, how many were actually positive.
+	- Why here: Monitored to avoid overwhelming staff; can be enforced via min-precision in threshold selection.
+- PR curve — Precision vs Recall across thresholds.
+	- Why here: Visual diagnostic for the precision–recall trade-off; we annotate AP and chosen operating point.
+- Recall (Sensitivity, TPR) — TP/(TP+FN); of actual positives, how many were caught.
+	- Why here: Primary target in screening; threshold policy sets a target recall while controlling FPR/precision.
+- ReduceLROnPlateau — Scheduler reducing LR when validation metric plateaus.
+	- Why here: Works with early stopping to escape plateaus and converge to a better local optimum.
+- ResNet-18 — A compact residual CNN used here with ImageNet pretraining.
+	- Why here: Backbone for both embedding extraction and the classifier; good speed/accuracy trade-off.
+- ROC curve — TPR vs FPR across thresholds.
+	- Why here: Helps assess ranking quality and visualize FPR constraints alongside AUC.
+- Semi-supervised learning — Combines a small labeled dataset with a larger unlabeled dataset (e.g., pseudo-labeling).
+	- Why here: Improves performance by leveraging unlabeled MRI images through pseudo-labels and fine-tuning.
+- Stratified split — Train/val/test splits that preserve class ratios.
+	- Why here: Ensures consistent class balance across splits for fair training and evaluation.
+- t-SNE — Nonlinear 2D/3D embedding preserving local neighborhoods for visualization.
+	- Why here: Qualitative check of cluster separability and structure in learned embeddings.
+- Threshold (operating point) — Probability cutoff used to convert scores into binary predictions.
+	- Why here: Selected by our constrained policy (target recall with optional min-precision/max-FPR) for deployment.
+- UMAP — Uniform Manifold Approximation and Projection; nonlinear embedding technique for visualization.
+	- Why here: Alternative to t-SNE with better global structure preservation; complements PCA and t-SNE views.
+- WeightedRandomSampler — PyTorch sampler that re-weights sampling probability per class.
+	- Why here: Mitigates class imbalance during training minibatch sampling.

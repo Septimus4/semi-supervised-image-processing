@@ -8,7 +8,7 @@
 - Total images processed: 1506
 - Failed decodes: 0
 - Mean per-image latency (s): 0.0026
-- Median per-image latency (s): 0.0025
+- Median per-image latency (s): 0.0026
 
 ## Sanity Check Statistics
 

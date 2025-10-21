@@ -16,17 +16,17 @@
     0.225
   ],
   "channel_policy": "PIL RGB conversion (grayscale replicated)",
-  "date_utc": "2025-10-01T14:12:27.289004+00:00",
+  "date_utc": "2025-10-21T16:16:03.479592+00:00",
   "num_images": 1506,
   "failed_images": 0,
-  "device": "cpu",
+  "device": "cuda",
   "dataset_dir": "mri_dataset_brain_cancer_oc",
-  "dataset_digest": "c96fb1c82f10414a9d2ced62b9504edcb834485738e0ab55411e760e0179680b",
+  "dataset_digest": "df9e99f977e3afe27584dd9e7f7a6d17afdf54b6e0990165304c0c7d7c8d12cd",
   "sanity_checks": {
     "num_vectors": 1506,
     "dimension": 512,
-    "mean_abs_mean": 0.8849999904632568,
-    "mean_std": 0.5817978382110596
+    "mean_abs_mean": 0.8849855661392212,
+    "mean_std": 0.5817868709564209
   },
   "neighbor_probe": [
     {
@@ -37,17 +37,17 @@
     {
       "query": "sans_label/b0573368-2b4a-4bb5-a2f2-fd4c106cbd6a.jpg",
       "neighbor": "sans_label/2e671412-32fd-4136-9844-f7053b0696c9.jpg",
-      "similarity": 0.9307708740234375
+      "similarity": 0.9308333992958069
     },
     {
       "query": "sans_label/db87f1fa-f718-4bf4-821f-689d5d6e72a1.jpg",
       "neighbor": "sans_label/33a6d838-67db-4ad2-a67a-b4d4b641ec8a.jpg",
-      "similarity": 0.8775182962417603
+      "similarity": 0.8775638937950134
     },
     {
       "query": "sans_label/a694549b-164f-4ab6-8c6e-821661302d50.jpg",
       "neighbor": "sans_label/dd2eb4e7-90a3-4801-ab47-b94dee64eab2.jpg",
-      "similarity": 0.9453628063201904
+      "similarity": 0.9453780055046082
     },
     {
       "query": "sans_label/63ca22a2-f45f-44d9-9aae-00f4d9bd795a.jpg",
@@ -57,17 +57,17 @@
     {
       "query": "sans_label/65664115-d6c0-4d61-8708-1e8e36f1c193.jpg",
       "neighbor": "sans_label/bb7be2dc-ad86-4c83-8350-c711317d5fb0.jpg",
-      "similarity": 0.9396051168441772
+      "similarity": 0.9396133422851562
     },
     {
       "query": "sans_label/05e808fc-a00c-4f1e-9682-1f73915f6902.jpg",
       "neighbor": "sans_label/ecd494ef-9aed-48e7-a2a3-99c91b46bfed.jpg",
-      "similarity": 0.9999998807907104
+      "similarity": 1.0
     },
     {
       "query": "sans_label/c38f8369-c2b1-41e3-a5ab-fd4c0cdafd3e.jpg",
       "neighbor": "avec_labels/cancer/c6acea0d-0c31-4ce8-b0f8-b4a610a9477d.jpg",
-      "similarity": 0.8949753046035767
+      "similarity": 0.8949538469314575
     }
   ]
 }

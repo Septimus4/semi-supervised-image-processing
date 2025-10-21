@@ -86,9 +86,43 @@ Key outputs (ignored by Git) are written under `outputs/`:
 A concise narrative summary and interpretation is committed at
 `notes/training_report.md`.
 
+## Calibrate the decision threshold
+
+The training script automatically selects a probability cutoff on the validation split to meet your deployment goals:
+
+- It targets a desired recall (`--target-recall`) and optionally enforces `--min-precision` and/or `--max-fpr`.
+- Among thresholds that satisfy the constraints, it picks the largest one (to reduce false positives).
+- If constraints can’t be met, it falls back to maximizing F-beta (`--f-beta`, default 2.0, recall-weighted).
+
+Recommended run (example):
+
+```bash
+python -m src.semi_supervised_training \
+  --strong-data-dir mri_dataset_brain_cancer_oc/avec_labels \
+  --weak-data-dir mri_dataset_brain_cancer_oc/sans_label \
+  --target-recall 0.98 \
+  --min-precision 0.60
+```
+
+Where to find the chosen threshold and diagnostics:
+
+- Tables: `outputs/tables/results_comparison.csv` and `outputs/tables/results_comparison_detailed.csv` (look for `threshold`, `threshold_policy`, `target_recall`, and constraints columns).
+- Curves: `outputs/figures/pr_curves.png` and `outputs/figures/roc_curves.png` to inspect trade-offs.
+
+Optional manual sweep (for analysis only):
+
+```bash
+python -m src.threshold_sweep \
+  --strong-data-dir mri_dataset_brain_cancer_oc/avec_labels \
+  --model semi \
+  --device cuda
+```
+
+This writes `outputs/tables/threshold_sweep_semi.csv` and prints the highest threshold achieving TPR≈1.0 on the test split. Calibrate on validation for deployment; use the test sweep for understanding, not tuning.
+
 ## Documentation
 
-- Overview and navigation: [docs/index.md](docs/index.md)
+- Overview and navigation: [docs/index.md](docs/README.md)
 - Setup: [docs/setup.md](docs/setup.md)
 - Dataset layout: [docs/dataset.md](docs/dataset.md)
 - Data audit: [docs/data_audit.md](docs/data_audit.md)
@@ -99,3 +133,4 @@ A concise narrative summary and interpretation is committed at
 - Troubleshooting: [docs/troubleshooting.md](docs/troubleshooting.md)
 - Architecture: [docs/architecture.md](docs/architecture.md)
 - Reproducibility: [docs/reproducibility.md](docs/reproducibility.md)
+ - Evaluation and operating points: [docs/evaluation.md](docs/evaluation.md)

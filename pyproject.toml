@@ -16,5 +16,13 @@ dependencies = [
     "umap-learn>=0.5",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "black>=24.3",
+    "ruff>=0.4",
+    "mypy>=1.10",
+]
+
 [tool.uv]
 dev-dependencies = []

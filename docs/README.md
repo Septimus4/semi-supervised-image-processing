@@ -14,5 +14,7 @@ Use the navigation below to jump to a topic:
 - Troubleshooting common issues: see [Troubleshooting](./troubleshooting.md)
 - Project structure and components: see [Architecture](./architecture.md)
 - Reproducibility and outputs: see [Reproducibility](./reproducibility.md)
+ - Evaluation and operating points: see [Evaluation](./evaluation.md)
+ - Glossary of terms used here: see [Glossary](./glossary.md)
 
 If you’re in a hurry, start with Setup and Training.

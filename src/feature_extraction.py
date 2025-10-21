@@ -13,6 +13,14 @@ semi-supervised image processing project:
 4. Persist the embeddings, metadata, and summary artifacts to the
    ``outputs`` directory tree.
 
+Why features first?
+- Separating feature extraction from training lets students reuse the same
+    representation for multiple downstream tasks (clustering, classifiers),
+    speeding iteration and making experiments comparable.
+- We use a pretrained ResNet-18 as a “universal” feature extractor: it has
+    learned general edge/texture/shape detectors from ImageNet that transfer
+    surprisingly well to medical images after simple normalisation.
+
 Run directly as a script to regenerate embeddings::
 
     python -m src.feature_extraction --data-dir mri_dataset_brain_cancer_oc
@@ -30,7 +38,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, List, Optional, Sequence, Iterable
 
 import numpy as np
 import torch
@@ -117,6 +125,10 @@ def configure_logging(verbose: bool = False) -> None:
 def discover_image_records(data_dir: Path) -> List[ImageRecord]:
     """Enumerate labeled and unlabeled images as :class:`ImageRecord`s."""
 
+    # We store both absolute and relative paths and whether a
+    # sample is labeled. This makes it easy to build tables and trace results
+    # back to files later (e.g., nearest-neighbor spot checks).
+
     if not data_dir.exists():
         raise FileNotFoundError(f"Data directory not found: {data_dir}")
 
@@ -172,6 +184,19 @@ def discover_image_records(data_dir: Path) -> List[ImageRecord]:
 def build_transform() -> transforms.Compose:
     """Return preprocessing transform with deterministic resizing."""
 
+    # These transforms deliberately mirror ImageNet training
+    # Why 224 with a 256→224 resize-crop?
+    # - ResNet-18 was pretrained on ImageNet at 224×224; keeping the
+    #   same scale preserves learned inductive biases and improves transfer.
+    # - Resize to 256 then center-crop to 224 is a standard ImageNet
+    #   preprocessing pattern that reduces border artifacts and standardises
+    #   content framing.
+    # - This resolution balances detail and throughput/VRAM. If your task
+    #   requires finer structures, consider larger crops consistently across
+    #   data and model.
+    # stats so the backbone’s early layers receive inputs they expect. We
+    # avoid randomness here to keep embeddings reproducible.
+
     return transforms.Compose(
         [
             transforms.Resize(TARGET_RESIZE),
@@ -184,6 +209,10 @@ def build_transform() -> transforms.Compose:
 
 def load_model(device: torch.device) -> nn.Module:
     """Load the pretrained ResNet18 backbone (penultimate layer)."""
+
+    # Taking features from the penultimate layer (after global
+    # average pooling) yields a compact vector per image that captures high-level
+    # content. Freezing ensures we don’t accidentally “train” during extraction.
 
     weights = models.ResNet18_Weights.IMAGENET1K_V1
     backbone = models.resnet18(weights=weights)
@@ -200,6 +229,9 @@ def load_model(device: torch.device) -> nn.Module:
 
 def preprocess_image(path: Path, transform: transforms.Compose) -> torch.Tensor:
     """Load and preprocess an image, replicating grayscale to RGB."""
+
+    # MRI often comes grayscale; converting to RGB by channel
+    # replication satisfies the backbone’s 3-channel input requirement.
 
     with Image.open(path) as img:
         image_rgb = img.convert("RGB")
@@ -221,6 +253,10 @@ def extract_embeddings(
     batch_size: int = BATCH_SIZE,
 ) -> ExtractionResults:
     """Run feature extraction for the provided image records."""
+
+    # We handle decode failures explicitly and continue. Silent
+    # drops make audits confusing; explicit logs plus a failure list keep the
+    # pipeline robust and transparent for students.
 
     transform = build_transform()
     model = load_model(device)
@@ -279,6 +315,10 @@ def extract_embeddings(
 def compute_dataset_digest(records: Sequence[ImageRecord]) -> str:
     """Compute a deterministic digest of the dataset contents."""
 
+    # A content digest (paths + sizes + mtimes) is a cheap way
+    # to detect if the dataset changed between runs. This supports reproducible
+    # labs where multiple students share data.
+
     import hashlib
 
     hasher = hashlib.sha256()
@@ -323,6 +363,10 @@ def nearest_neighbor_probe(
 ) -> List[Dict[str, object]]:
     """Compute a simple nearest-neighbor spot check on a subset."""
 
+    # This qualitative check builds intuition: similar images
+    # should be nearest neighbors in the embedding space if the features are
+    # meaningful. We normalise to cosine similarity for scale invariance.
+
     if embeddings.shape[0] < 2:
         return []
 
@@ -361,6 +405,9 @@ def save_artifacts(
     device: torch.device,
 ) -> None:
     """Persist embeddings, CSV metadata, JSON metadata, and summary notes."""
+
+    # Persisting a CSV that aligns rows to file paths is key for
+    # joining with labels, clustering assignments, or error analyses later.
 
     FEATURE_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     NOTE_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -416,8 +463,8 @@ def save_artifacts(
     median_latency = float(np.median(results.per_file_times)) if results.per_file_times else float("nan")
 
     neighbor_lines = [
-        f"| Query | Neighbor | Cosine |",
-        f"| --- | --- | --- |",
+        "| Query | Neighbor | Cosine |",
+        "| --- | --- | --- |",
     ]
     for item in neighbor_probe:
         neighbor_lines.append(
